@@ -149,10 +149,10 @@ function useFullscreen() {
   }
   const active = full || fill
   const boxClass = fill
-    ? 'fixed inset-0 z-[60] bg-black fs-fill'
+    ? 'fixed inset-0 z-[60] bg-black fs-fill fs-box'
     : full
-      ? 'w-full h-full bg-black'
-      : 'w-full aspect-video bg-neutral-900'
+      ? 'w-full h-full bg-black fs-box'
+      : 'w-full aspect-video bg-neutral-900 fs-box'
   return { boxRef, boxClass, active, toggle }
 }
 
@@ -160,7 +160,7 @@ function FullscreenButton({ fs }) {
   return (
     <>
       <button onClick={fs.toggle} className="text-xs font-semibold border border-white/30 rounded px-2 py-1 mr-2 whitespace-nowrap" aria-label={fs.active ? 'Exit full screen' : 'Full screen'}>
-        {fs.active ? 'Exit full screen' : '\u26F6 Full screen'}
+        {fs.active ? 'Exit full screen' : 'Full screen'}
       </button>
     </>
   )
