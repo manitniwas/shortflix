@@ -244,7 +244,7 @@ function Detail({ item, inList, rating, progress, onClose, onPlay, onToggleList,
         <h1 className="text-2xl font-extrabold">{item.title}</h1>
         <div className="flex flex-wrap items-center gap-1.5 mt-2">
           {item.award && <Badge color="bg-amber-400 text-black">{item.award}</Badge>}
-          <Badge>{item.year}</Badge>
+          {item.year && <Badge>{item.year}</Badge>}
           {item.type === 'series' ? <Badge>{item.episodes.length} episodes</Badge> : <Badge>{fmt(item.runtime)}</Badge>}
           {item.genres.map((g) => (
             <Badge key={g}>{g}</Badge>
@@ -382,7 +382,16 @@ export default function App() {
       trending: base.filter((c) => c.trending),
       awarded: base.filter((c) => c.award),
       series: base.filter((c) => c.type === 'series'),
+      under5: base.filter((c) => c.type === 'film' && c.runtime <= 5),
       under10: base.filter((c) => c.type === 'film' && c.runtime < 10),
+      around20: base.filter((c) => c.type === 'film' && c.runtime >= 15 && c.runtime <= 25),
+      feelGood: base.filter((c) => c.genres.includes('Family')),
+      laughs: base.filter((c) => c.genres.includes('Comedy')),
+      edge: base.filter((c) => c.genres.includes('Horror') || c.genres.includes('Thriller')),
+      scifi: base.filter((c) => c.genres.includes('Sci-Fi')),
+      animated: base.filter((c) => c.genres.includes('Animation')),
+      trueStories: base.filter((c) => c.genres.includes('Documentary')),
+      love: base.filter((c) => c.genres.includes('Romance')),
       all: base,
     }
   }, [chip, progress])
@@ -473,7 +482,16 @@ export default function App() {
           <Row title="Trending Now" items={rows.trending} progress={progress} onOpen={(it) => setDetailId(it.id)} />
           <Row title="Award-Winning Shorts" items={rows.awarded} progress={progress} onOpen={(it) => setDetailId(it.id)} />
           <Row title="Short Film Series" items={rows.series} progress={progress} onOpen={(it) => setDetailId(it.id)} />
+          <Row title="Feel-Good Picks" items={rows.feelGood} progress={progress} onOpen={(it) => setDetailId(it.id)} />
+          <Row title="Laugh Track" items={rows.laughs} progress={progress} onOpen={(it) => setDetailId(it.id)} />
+          <Row title="Edge of Your Seat" items={rows.edge} progress={progress} onOpen={(it) => setDetailId(it.id)} />
+          <Row title="Sci-Fi Futures" items={rows.scifi} progress={progress} onOpen={(it) => setDetailId(it.id)} />
+          <Row title="Animated Worlds" items={rows.animated} progress={progress} onOpen={(it) => setDetailId(it.id)} />
+          <Row title="True Stories" items={rows.trueStories} progress={progress} onOpen={(it) => setDetailId(it.id)} />
+          <Row title="Love & Heart" items={rows.love} progress={progress} onOpen={(it) => setDetailId(it.id)} />
+          <Row title="Under 5 Minutes" items={rows.under5} progress={progress} onOpen={(it) => setDetailId(it.id)} />
           <Row title="Under 10 Minutes" items={rows.under10} progress={progress} onOpen={(it) => setDetailId(it.id)} />
+          <Row title="Around 20 Minutes" items={rows.around20} progress={progress} onOpen={(it) => setDetailId(it.id)} />
           <Row title="Everything" items={rows.all} progress={progress} onOpen={(it) => setDetailId(it.id)} />
         </>
       )}
