@@ -60,8 +60,13 @@ jobs:
           <plist version="1.0">
           <dict>
             <key>method</key><string>app-store-connect</string>
-            <key>signingStyle</key><string>automatic</string>
+            <key>signingStyle</key><string>manual</string>
             <key>teamID</key><string>4L24A4X49G</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.manitniwas.shortflix</key><string>com.manitniwas.shortflix AppStore</string>
+            </dict>
           </dict>
           </plist>
           PLIST
@@ -69,7 +74,6 @@ jobs:
             -archivePath build/App.xcarchive \
             -exportPath build \
             -exportOptionsPlist build/ExportOptions.plist \
-            -allowProvisioningUpdates \
             -authenticationKeyPath ~/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
             -authenticationKeyID ${ASC_KEY_ID} \
             -authenticationKeyIssuerID ${ASC_ISSUER_ID}
