@@ -1,26 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { CATALOG, thumb, posterFor } from './catalog.js'
-
-function useLocalStorage(key, initial) {
-  const [value, setValue] = useState(() => {
-    try {
-      const raw = window.localStorage.getItem(key)
-      return raw ? JSON.parse(raw) : initial
-    } catch {
-      return initial
-    }
-  })
-  const set = (v) => {
-    setValue((prev) => {
-      const next = typeof v === 'function' ? v(prev) : v
-      try {
-        window.localStorage.setItem(key, JSON.stringify(next))
-      } catch {}
-      return next
-    })
-  }
-  return [value, set]
-}
+import { supabase, fetchProfileState } from './supabase.js'
 
 const fmt = (min) => (min >= 60 ? `${Math.floor(min / 60)}h ${min % 60}m` : `${min} min`)
 
@@ -530,7 +510,163 @@ function BottomNav({ tab, setTab }) {
   )
 }
 
+const AVATARS = [
+  { id: 'red', cls: 'bg-red-600' },
+  { id: 'blue', cls: 'bg-sky-600' },
+  { id: 'green', cls: 'bg-emerald-600' },
+  { id: 'purple', cls: 'bg-violet-600' },
+  { id: 'amber', cls: 'bg-amber-500' },
+  { id: 'pink', cls: 'bg-pink-600' },
+]
+const avatarCls = (id) => (AVATARS.find((a) => a.id === id) || AVATARS[0]).cls
+
+function AvatarBadge({ profile, size = 'w-7 h-7 text-xs' }) {
+  return (
+    <span className={`${size} ${avatarCls(profile.avatar)} rounded-full flex items-center justify-center font-bold uppercase select-none`}>
+      {(profile.name || '?').slice(0, 1)}
+    </span>
+  )
+}
+
+function AuthScreen() {
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+  const submit = async (e) => {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: { emailRedirectTo: window.location.origin + window.location.pathname },
+    })
+    setBusy(false)
+    if (error) setError(error.message)
+    else setSent(true)
+  }
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center px-6">
+      <div className="text-brand font-extrabold text-3xl tracking-tight mb-2">SHORTFLIX</div>
+      <p className="text-sm text-neutral-400 mb-8 text-center max-w-xs">
+        Great short films, free. Sign in to keep your list, ratings and watch progress on every device.
+      </p>
+      {sent ? (
+        <div className="text-center max-w-xs">
+          <div className="text-lg font-semibold mb-2">Check your email</div>
+          <p className="text-sm text-neutral-400">
+            We sent a sign-in link to <span className="text-white">{email}</span>. Open it on this device to continue.
+          </p>
+          <button onClick={() => setSent(false)} className="mt-6 text-sm text-neutral-400 underline">
+            Use a different email
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={submit} className="w-full max-w-xs">
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email address"
+            className="w-full bg-neutral-800 rounded px-4 py-3 text-sm outline-none placeholder:text-neutral-500"
+          />
+          {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
+          <button disabled={busy} className="mt-3 w-full bg-brand text-white font-bold py-3 rounded disabled:opacity-50">
+            {busy ? 'Sending...' : 'Continue with email'}
+          </button>
+          <p className="text-[11px] text-neutral-500 mt-4 text-center">No password needed. We email you a sign-in link.</p>
+        </form>
+      )}
+    </div>
+  )
+}
+
+function ProfileGate({ profiles, onSelect, onCreate, onSignOut }) {
+  const [adding, setAdding] = useState(false)
+  const [name, setName] = useState('')
+  const [avatar, setAvatar] = useState('red')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+  const create = async (e) => {
+    e.preventDefault()
+    if (!name.trim()) return
+    setBusy(true)
+    setError(null)
+    const err = await onCreate(name.trim(), avatar)
+    setBusy(false)
+    if (err) setError(err)
+  }
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center px-6">
+      <div className="text-brand font-extrabold text-2xl tracking-tight mb-10">SHORTFLIX</div>
+      <h1 className="text-xl font-semibold mb-8">Who's watching?</h1>
+      <div className="flex flex-wrap justify-center gap-5 max-w-sm">
+        {profiles.map((p) => (
+          <button key={p.id} onClick={() => onSelect(p)} className="flex flex-col items-center gap-2 group">
+            <span className={`w-20 h-20 ${avatarCls(p.avatar)} rounded-lg flex items-center justify-center text-3xl font-extrabold uppercase group-hover:ring-2 ring-white`}>
+              {p.name.slice(0, 1)}
+            </span>
+            <span className="text-sm text-neutral-300 group-hover:text-white max-w-[5.5rem] truncate">{p.name}</span>
+          </button>
+        ))}
+        {!adding && profiles.length < 5 && (
+          <button onClick={() => setAdding(true)} className="flex flex-col items-center gap-2 group">
+            <span className="w-20 h-20 rounded-lg border-2 border-dashed border-neutral-700 flex items-center justify-center text-3xl text-neutral-500 group-hover:border-neutral-400 group-hover:text-neutral-300">+</span>
+            <span className="text-sm text-neutral-500 group-hover:text-neutral-300">Add profile</span>
+          </button>
+        )}
+      </div>
+      {adding && (
+        <form onSubmit={create} className="mt-8 w-full max-w-xs">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Profile name"
+            maxLength={40}
+            autoFocus
+            className="w-full bg-neutral-800 rounded px-4 py-3 text-sm outline-none placeholder:text-neutral-500"
+          />
+          <div className="flex justify-center gap-2 mt-4">
+            {AVATARS.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => setAvatar(a.id)}
+                className={`w-8 h-8 rounded-full ${a.cls} ${avatar === a.id ? 'ring-2 ring-white ring-offset-2 ring-offset-black' : ''}`}
+                aria-label={a.id}
+              />
+            ))}
+          </div>
+          {error && <p className="text-red-400 text-xs mt-3 text-center">{error}</p>}
+          <div className="flex gap-2 mt-5">
+            <button type="button" onClick={() => setAdding(false)} className="flex-1 bg-white/10 py-2.5 rounded text-sm font-semibold">
+              Cancel
+            </button>
+            <button disabled={busy || !name.trim()} className="flex-1 bg-brand py-2.5 rounded text-sm font-bold disabled:opacity-50">
+              {busy ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
+      )}
+      <button onClick={onSignOut} className="mt-12 text-xs text-neutral-500 underline">Sign out</button>
+    </div>
+  )
+}
+
+function Splash() {
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
+      <div className="text-brand font-extrabold text-3xl tracking-tight animate-pulse">SHORTFLIX</div>
+    </div>
+  )
+}
+
 export default function App() {
+  const [session, setSession] = useState(undefined) // undefined = still loading
+  const [profiles, setProfiles] = useState(null)
+  const [profile, setProfile] = useState(null)
+
   const [tab, setTab] = useState('home')
   const [chip, setChip] = useState('All')
   const [detailId, setDetailId] = useState(() => {
@@ -539,9 +675,136 @@ export default function App() {
   })
   const [play, setPlay] = useState(null) // { videoId, key, label, seriesId?, epIndex? }
   const [query, setQuery] = useState('')
-  const [myList, setMyList] = useLocalStorage('sf_mylist', [])
-  const [progress, setProgress] = useLocalStorage('sf_progress', {})
-  const [ratings, setRatings] = useLocalStorage('sf_ratings', {})
+  const [myList, setMyList] = useState([])
+  const [progress, setProgress] = useState({})
+  const [ratings, setRatings] = useState({})
+
+  // Latest values for sync helpers, so async writes never use stale closures.
+  const refs = useRef({})
+  refs.current = { profile, myList, ratings, progress, play }
+  const lastProgressSync = useRef({})
+
+  const cacheState = (pid, s) => {
+    try {
+      window.localStorage.setItem(`sf_state_${pid}`, JSON.stringify(s))
+    } catch {}
+  }
+
+  // Auth session
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s))
+    return () => sub.subscription.unsubscribe()
+  }, [])
+
+  // Profiles for the signed-in user
+  useEffect(() => {
+    if (!session) {
+      setProfiles(null)
+      setProfile(null)
+      return
+    }
+    supabase
+      .from('profiles')
+      .select('id, name, avatar')
+      .order('created_at')
+      .then(({ data, error }) => {
+        const list = error ? [] : data || []
+        setProfiles(list)
+        // Re-enter the profile that was active on this device, if it still exists.
+        try {
+          const active = window.localStorage.getItem('sf_active_profile')
+          const p = active && list.find((x) => x.id === active)
+          if (p) activateProfile(p)
+        } catch {}
+      })
+  }, [session])
+
+  const activateProfile = async (p) => {
+    try {
+      window.localStorage.setItem('sf_active_profile', p.id)
+    } catch {}
+    setProfile(p)
+    lastProgressSync.current = {}
+    // Show this device's cached copy instantly, then replace with the database copy.
+    try {
+      const raw = window.localStorage.getItem(`sf_state_${p.id}`)
+      const s = raw ? JSON.parse(raw) : null
+      setMyList(s?.myList || [])
+      setRatings(s?.ratings || {})
+      setProgress(s?.progress || {})
+    } catch {
+      setMyList([])
+      setRatings({})
+      setProgress({})
+    }
+    try {
+      const s = await fetchProfileState(p.id)
+      // Only apply if this profile is still the active one.
+      if (refs.current.profile?.id !== p.id) return
+      setMyList(s.myList)
+      setRatings(s.ratings)
+      setProgress(s.progress)
+      cacheState(p.id, s)
+    } catch (e) {
+      // Offline or API error: keep the cached copy.
+    }
+  }
+
+  const createProfile = async (name, avatar) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({ user_id: session.user.id, name, avatar })
+      .select('id, name, avatar')
+      .single()
+    if (error) return error.message
+    const p = data
+    // First profile on this account inherits whatever this browser saved before login existed.
+    if ((profiles || []).length === 0) {
+      try {
+        const l = JSON.parse(window.localStorage.getItem('sf_mylist') || '[]')
+        const r = JSON.parse(window.localStorage.getItem('sf_ratings') || '{}')
+        const pr = JSON.parse(window.localStorage.getItem('sf_progress') || '{}')
+        if (l.length) await supabase.from('list_items').upsert(l.map((f) => ({ profile_id: p.id, film_id: f })))
+        const ratingRows = Object.entries(r).filter(([, v]) => v).map(([f, v]) => ({ profile_id: p.id, film_id: f, rating: v }))
+        if (ratingRows.length) await supabase.from('ratings').upsert(ratingRows)
+        const progRows = Object.entries(pr).map(([k, v]) => ({
+          profile_id: p.id,
+          item_key: k,
+          position_seconds: (v && v.t) || 0,
+          duration_seconds: (v && v.d) || 0,
+        }))
+        if (progRows.length) await supabase.from('watch_progress').upsert(progRows)
+        window.localStorage.removeItem('sf_mylist')
+        window.localStorage.removeItem('sf_ratings')
+        window.localStorage.removeItem('sf_progress')
+      } catch {}
+    }
+    setProfiles((prev) => [...(prev || []), p])
+    activateProfile(p)
+    return null
+  }
+
+  const switchProfile = () => {
+    flushProgress()
+    try {
+      window.localStorage.removeItem('sf_active_profile')
+    } catch {}
+    setProfile(null)
+    setPlay(null)
+    setDetailId(null)
+    setTab('home')
+  }
+
+  const signOut = async () => {
+    flushProgress()
+    try {
+      window.localStorage.removeItem('sf_active_profile')
+    } catch {}
+    await supabase.auth.signOut()
+    setProfile(null)
+    setTab('home')
+  }
 
   const detail = CATALOG.find((c) => c.id === detailId) || null
   const featured = CATALOG.find((c) => c.featured) || CATALOG[0]
@@ -574,10 +837,71 @@ export default function App() {
     }
   }, [chip, progress])
 
-  const toggleList = (item) =>
-    setMyList(myList.includes(item.id) ? myList.filter((i) => i !== item.id) : [...myList, item.id])
+  const toggleList = (item) => {
+    const { profile: prof, ratings: r, progress: pr } = refs.current
+    if (!prof) return
+    const has = myList.includes(item.id)
+    const next = has ? myList.filter((i) => i !== item.id) : [...myList, item.id]
+    setMyList(next)
+    cacheState(prof.id, { myList: next, ratings: r, progress: pr })
+    const op = has
+      ? supabase.from('list_items').delete().eq('profile_id', prof.id).eq('film_id', item.id)
+      : supabase.from('list_items').upsert({ profile_id: prof.id, film_id: item.id })
+    op.then(({ error }) => error && console.warn('list sync failed', error))
+  }
 
-  const rate = (item, r) => setRatings({ ...ratings, [item.id]: r })
+  const rate = (item, r) => {
+    const { profile: prof, myList: ml, progress: pr } = refs.current
+    if (!prof) return
+    const next = { ...ratings, [item.id]: r }
+    setRatings(next)
+    cacheState(prof.id, { myList: ml, ratings: next, progress: pr })
+    const op =
+      r == null
+        ? supabase.from('ratings').delete().eq('profile_id', prof.id).eq('film_id', item.id)
+        : supabase.from('ratings').upsert({ profile_id: prof.id, film_id: item.id, rating: r, updated_at: new Date().toISOString() })
+    op.then(({ error }) => error && console.warn('rating sync failed', error))
+  }
+
+  const syncProgress = (key, t, d) => {
+    const prof = refs.current.profile
+    if (!prof) return
+    supabase
+      .from('watch_progress')
+      .upsert({
+        profile_id: prof.id,
+        item_key: key,
+        position_seconds: t,
+        duration_seconds: d,
+        updated_at: new Date().toISOString(),
+      })
+      .then(({ error }) => error && console.warn('progress sync failed', error))
+  }
+
+  // Called every 500ms while the player runs. Local save is instant; the database
+  // gets an update about every 10s per title, plus immediately when nearly finished.
+  const saveProgress = (key, t, d) => {
+    const { profile: prof, myList: ml, ratings: r } = refs.current
+    if (!prof) return
+    setProgress((prev) => {
+      const next = { ...prev, [key]: { t, d } }
+      cacheState(prof.id, { myList: ml, ratings: r, progress: next })
+      return next
+    })
+    const now = Date.now()
+    const done = d > 0 && t / d > 0.9
+    if (done || now - (lastProgressSync.current[key] || 0) > 10000) {
+      lastProgressSync.current[key] = now
+      syncProgress(key, t, d)
+    }
+  }
+
+  function flushProgress() {
+    const { profile: prof, progress: pr, play: pl } = refs.current
+    if (!prof || !pl) return
+    const cur = pr[pl.key]
+    if (cur) syncProgress(pl.key, cur.t, cur.d)
+  }
 
   const openPlay = (item, epIndex = null) => {
     if (item.type === 'series' && epIndex !== null) {
@@ -591,16 +915,6 @@ export default function App() {
     }
   }
 
-  const saveProgress = (key, t, d) => {
-    setProgress((prev) => {
-      const next = { ...prev, [key]: { t, d } }
-      try {
-        window.localStorage.setItem('sf_progress', JSON.stringify(next))
-      } catch {}
-      return next
-    })
-  }
-
   // Deep link: ?play=<id> opens the player on load.
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get('play')
@@ -608,6 +922,11 @@ export default function App() {
     const item = CATALOG.find((c) => c.id === p)
     if (item) openPlay(item)
   }, [])
+
+  const closePlayer = () => {
+    flushProgress()
+    setPlay(null)
+  }
 
   const nextEpisode = () => {
     if (!play || play.seriesId == null) return null
@@ -631,13 +950,19 @@ export default function App() {
   const listItems = CATALOG.filter((c) => myList.includes(c.id))
   const watchedCount = Object.values(progress).filter((p) => p.d > 0 && p.t / p.d > 0.9).length
 
+  if (session === undefined || (session && profiles === null)) return <Splash />
+  if (!session) return <AuthScreen />
+  if (!profile) {
+    return <ProfileGate profiles={profiles || []} onSelect={activateProfile} onCreate={createProfile} onSignOut={signOut} />
+  }
+
   return (
     <div className="min-h-full bg-[#0a0a0a] text-white pb-20 max-w-xl mx-auto">
       {tab === 'home' && (
         <>
           <header className="sticky top-0 z-20 bg-gradient-to-b from-black to-transparent px-4 pt-3 pb-2 flex items-center justify-between">
             <div className="text-brand font-extrabold text-xl tracking-tight">SHORTFLIX</div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 items-center">
               {['All', 'Films', 'Series'].map((c) => (
                 <button
                   key={c}
@@ -647,6 +972,9 @@ export default function App() {
                   {c}
                 </button>
               ))}
+              <button onClick={switchProfile} className="ml-1" aria-label="Switch profile" title="Switch profile">
+                <AvatarBadge profile={profile} />
+              </button>
             </div>
           </header>
           <Hero
@@ -719,7 +1047,13 @@ export default function App() {
 
       {tab === 'me' && (
         <div className="px-4 pt-4">
-          <h1 className="text-xl font-bold">Me</h1>
+          <div className="flex items-center gap-3">
+            <AvatarBadge profile={profile} size="w-11 h-11 text-lg" />
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold truncate">{profile.name}</h1>
+              <div className="text-xs text-neutral-400 truncate">{session.user.email}</div>
+            </div>
+          </div>
           <div className="grid grid-cols-3 gap-2 mt-4 text-center">
             <div className="bg-neutral-800 rounded p-4">
               <div className="text-2xl font-extrabold">{myList.length}</div>
@@ -734,9 +1068,15 @@ export default function App() {
               <div className="text-[11px] text-neutral-400">Rated</div>
             </div>
           </div>
+          <button onClick={switchProfile} className="mt-4 w-full bg-white/10 py-2.5 rounded font-semibold text-sm">
+            Switch profile
+          </button>
+          <button onClick={signOut} className="mt-2 w-full bg-white/10 py-2.5 rounded font-semibold text-sm text-neutral-300">
+            Sign out
+          </button>
           <p className="text-xs text-neutral-500 mt-6 leading-relaxed">
             Shortflix prototype. Every film streams free from its official YouTube channel. Your list, ratings and watch
-            progress stay in this browser.
+            progress sync to your account and follow this profile across devices.
           </p>
         </div>
       )}
@@ -759,7 +1099,7 @@ export default function App() {
       {play && (
         <Player
           play={play}
-          onClose={() => setPlay(null)}
+          onClose={closePlayer}
           onProgress={saveProgress}
           onNext={nextEpisode() || undefined}
         />
