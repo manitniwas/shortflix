@@ -16,6 +16,8 @@ platform :ios do
     get_certificates(
       api_key: key,
       development: false,
+      keychain_path: File.expand_path("~/Library/Keychains/fastlane_tmp_keychain-db"),
+      keychain_password: "",
     )
     get_provisioning_profile(
       api_key: key,
