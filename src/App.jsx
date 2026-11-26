@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { CATALOG, thumb, posterFor } from './catalog.js'
 import { supabase, fetchProfileState } from './supabase.js'
+import { Capacitor } from '@capacitor/core'
+import { GoogleSignIn } from '@capawesome/capacitor-google-sign-in'
+
+// Web OAuth client ID from the Google Cloud project backing Supabase Google sign-in.
+// The native plugin always wants the web client ID, even on iOS/Android.
+const GOOGLE_WEB_CLIENT_ID = '71192269693-lc8qepuls5k5i07cqa2nd3quvv28huiq.apps.googleusercontent.com'
 
 const catalogIds = new Set(CATALOG.map((c) => c.id))
 const validKey = (k) => catalogIds.has(String(k).split(':')[0])
@@ -555,12 +561,25 @@ function AuthScreen() {
   const googleSignIn = async () => {
     setGoogleBusy(true)
     setError(null)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin + window.location.pathname },
-    })
+    try {
+      if (Capacitor.isNativePlatform()) {
+        // Inside the app, Google's policy blocks OAuth in a webview, so use the
+        // native Google Sign-In sheet and hand Supabase the resulting ID token.
+        await GoogleSignIn.initialize({ clientId: GOOGLE_WEB_CLIENT_ID })
+        const { idToken } = await GoogleSignIn.signIn()
+        const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken })
+        if (error) throw error
+      } else {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: window.location.origin + window.location.pathname },
+        })
+        if (error) throw error
+      }
+    } catch (e) {
+      setError(e.message || 'Google sign-in failed')
+    }
     setGoogleBusy(false)
-    if (error) setError(error.message)
   }
   const submit = async (e) => {
     e.preventDefault()
