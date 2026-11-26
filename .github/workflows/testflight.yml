@@ -65,11 +65,14 @@ jobs:
             <key>signingCertificate</key><string>Apple Distribution</string>
             <key>provisioningProfiles</key>
             <dict>
-              <key>com.manitniwas.shortflix</key><string>com.manitniwas.shortflix AppStore</string>
+              <key>com.manitniwas.shortflix</key><string>PROFILE_PLACEHOLDER</string>
             </dict>
           </dict>
           </plist>
           PLIST
+          PROFILE_UUID=$(basename "$(ls -t "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision | head -1)" .mobileprovision)
+          echo "Using installed provisioning profile $PROFILE_UUID"
+          sed -i '' "s/PROFILE_PLACEHOLDER/$PROFILE_UUID/" build/ExportOptions.plist
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
             -exportPath build \
