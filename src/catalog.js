@@ -168,6 +168,22 @@ export const CATALOG = [
     channel: 'Dogs Inc',
     trending: true,
   },
+  {
+    id: 'tide',
+    type: 'film',
+    title: 'TIDE',
+    runtime: 4,
+    genres: ['Drama', 'Thriller'],
+    award: null,
+    synopsis: 'When a police officer walks into a bar after hours, things start to spiral as the truth unfolds.',
+    videoId: '1250049927',
+    provider: 'vimeo',
+    channel: 'Vimeo',
+    credit: 'Sushmita Narayan, Lucas Hogan & Jack Burns',
+    sourceUrl: 'https://vimeo.com/1250049927',
+    poster: 'https://i.vimeocdn.com/video/2230584386-0a65f87c35c8e3d23bf1cf0f265b517203293833c5cb4acf741c332676f9f2a1-d_640x360?region=us',
+    trending: true,
+  },
   // --- Blender open movies (all free from Blender's official channels) ---
   { id:'big-buck-bunny', type:'film', title:'Big Buck Bunny', year:2008, runtime:11, genres:['Animation','Comedy'], award:null, synopsis:'A gentle giant of a rabbit wakes in a good mood, until three bullying rodents push him into cartoon payback.', videoId:'aqz-KE-bpKQ', channel:'Blender' },
   { id:'sintel', type:'film', title:'Sintel', year:2010, runtime:15, genres:['Animation','Fantasy','Drama'], award:null, synopsis:'A lonely young woman crosses mountains and years searching for Scales, the baby dragon she rescued and lost.', videoId:'eRsGyueVLvQ', channel:'Blender', trending:true },
@@ -450,5 +466,7 @@ export const CATALOG = [
 
 export const thumb = (videoId) => `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
 
-export const posterFor = (item) =>
-  item.type === 'series' ? thumb(item.posterId || item.episodes[0].videoId) : thumb(item.videoId)
+export const posterFor = (item) => {
+  if (item.poster) return item.poster
+  return item.type === 'series' ? thumb(item.posterId || item.episodes[0].videoId) : thumb(item.videoId)
+}

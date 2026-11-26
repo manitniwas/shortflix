@@ -75,7 +75,7 @@ function Hero({ item, inList, onPlay, onToggleList, onOpen }) {
   return (
     <div className="relative">
       <button onClick={() => onOpen(item)} className="block w-full">
-        <img src={thumb(item.videoId)} alt={item.title} className="w-full aspect-video object-cover" />
+        <img src={posterFor(item)} alt={item.title} className="w-full aspect-video object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
       </button>
       <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -111,6 +111,31 @@ function Hero({ item, inList, onPlay, onToggleList, onOpen }) {
 
 function Player({ play, onClose, onProgress, onNext }) {
   const ref = useRef(null)
+  if (play.provider === 'vimeo') {
+    return (
+      <div className="fixed inset-0 z-50 bg-black flex flex-col">
+        <div className="flex items-center justify-between p-3">
+          <div className="text-sm font-semibold truncate pr-3">{play.label}</div>
+          <button onClick={onClose} className="text-2xl leading-none px-2" aria-label="Close">&times;</button>
+        </div>
+        <div className="w-full aspect-video bg-neutral-900">
+          <iframe
+            src={`https://player.vimeo.com/video/${play.videoId}?autoplay=1&playsinline=1&title=0`}
+            className="w-full h-full"
+            frameBorder="0"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+            title={play.label}
+          />
+        </div>
+        <div className="p-4">
+          <p className="text-center text-[11px] text-neutral-500">
+            Real video, streamed with the film&apos;s official Vimeo embed.
+          </p>
+        </div>
+      </div>
+    )
+  }
   const playerRef = useRef(null)
   const [ready, setReady] = useState(false)
   const [playing, setPlaying] = useState(true)
@@ -279,7 +304,12 @@ function Detail({ item, inList, rating, progress, onClose, onPlay, onToggleList,
           </button>
         </div>
         <p className="mt-4 text-sm text-neutral-300 leading-relaxed">{item.synopsis}</p>
-        <p className="mt-2 text-xs text-neutral-500">Free on the {item.channel} YouTube channel.</p>
+        <p className="mt-2 text-xs text-neutral-500">
+          {item.credit
+            ? <>Free on {item.channel}, by {item.credit}.{' '}
+                <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="underline">Watch on Vimeo</a></>
+            : `Free on the ${item.channel} YouTube channel.`}
+        </p>
 
         {item.type === 'series' && (
           <div className="mt-6">
@@ -409,7 +439,7 @@ export default function App() {
       const ep = item.episodes[0]
       setPlay({ videoId: ep.videoId, key: `${item.id}:${ep.id}`, label: `${item.title}: ${ep.title}`, seriesId: item.id, epIndex: 0 })
     } else {
-      setPlay({ videoId: item.videoId, key: item.id, label: item.title })
+      setPlay({ videoId: item.videoId, key: item.id, label: item.title, provider: item.provider })
     }
   }
 
