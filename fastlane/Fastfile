@@ -22,7 +22,7 @@ platform :ios do
     get_provisioning_profile(
       api_key: key,
       app_identifier: "com.manitniwas.shortflix",
-      ad_hoc: false,
+      adhoc: false,
     )
   end
 
