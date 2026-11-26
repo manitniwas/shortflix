@@ -109,16 +109,74 @@ function Hero({ item, inList, onPlay, onToggleList, onOpen }) {
   )
 }
 
+function useFullscreen() {
+  const boxRef = useRef(null)
+  const [full, setFull] = useState(false)
+  const [fill, setFill] = useState(false)
+  useEffect(() => {
+    const onChange = () => {
+      const el = document.fullscreenElement || document.webkitFullscreenElement
+      setFull(!!el)
+    }
+    document.addEventListener('fullscreenchange', onChange)
+    document.addEventListener('webkitfullscreenchange', onChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange)
+      document.removeEventListener('webkitfullscreenchange', onChange)
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {})
+      if (screen.orientation && screen.orientation.unlock) try { screen.orientation.unlock() } catch (e) {}
+    }
+  }, [])
+  const toggle = async () => {
+    const el = boxRef.current
+    if (full || fill) {
+      setFill(false)
+      try {
+        if (document.fullscreenElement && document.exitFullscreen) await document.exitFullscreen()
+        else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen()
+        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock()
+      } catch (e) {}
+      return
+    }
+    try {
+      if (el.requestFullscreen) await el.requestFullscreen()
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen()
+      else throw new Error('nofs')
+      if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {})
+    } catch (e) {
+      setFill(true)
+    }
+  }
+  const active = full || fill
+  const boxClass = fill
+    ? 'fixed inset-0 z-[60] bg-black fs-fill'
+    : full
+      ? 'w-full h-full bg-black'
+      : 'w-full aspect-video bg-neutral-900'
+  return { boxRef, boxClass, active, toggle }
+}
+
+function FullscreenButton({ fs }) {
+  return (
+    <>
+      <button onClick={fs.toggle} className="text-xs font-semibold border border-white/30 rounded px-2 py-1 mr-2 whitespace-nowrap" aria-label={fs.active ? 'Exit full screen' : 'Full screen'}>
+        {fs.active ? 'Exit full screen' : '\u26F6 Full screen'}
+      </button>
+    </>
+  )
+}
+
 function Player({ play, onClose, onProgress, onNext }) {
   const ref = useRef(null)
+  const fs = useFullscreen()
   if (play.provider === 'vimeo') {
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col">
         <div className="flex items-center justify-between p-3">
           <div className="text-sm font-semibold truncate pr-3">{play.label}</div>
-          <button onClick={onClose} className="text-2xl leading-none px-2" aria-label="Close">&times;</button>
+          <div className="flex items-center"><FullscreenButton fs={fs} /><button onClick={onClose} className="text-2xl leading-none px-2" aria-label="Close">&times;</button></div>
         </div>
-        <div className="w-full aspect-video bg-neutral-900">
+        <div ref={fs.boxRef} className={fs.boxClass}>
           <iframe
             src={`https://player.vimeo.com/video/${play.videoId}?autoplay=1&playsinline=1&title=0`}
             className="w-full h-full"
@@ -148,7 +206,7 @@ function Player({ play, onClose, onProgress, onNext }) {
       if (cancelled || !ref.current) return
       playerRef.current = new window.YT.Player(ref.current, {
         videoId: play.videoId,
-        playerVars: { autoplay: 1, rel: 0, modestbranding: 1, playsinline: 1 },
+        playerVars: { autoplay: 1, fs: 0, rel: 0, modestbranding: 1, playsinline: 1 },
         events: {
           onReady: () => setReady(true),
           onStateChange: (e) => {
@@ -210,9 +268,9 @@ function Player({ play, onClose, onProgress, onNext }) {
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
       <div className="flex items-center justify-between p-3">
         <div className="text-sm font-semibold truncate pr-3">{play.label}</div>
-        <button onClick={onClose} className="text-2xl leading-none px-2" aria-label="Close">&times;</button>
+        <div className="flex items-center"><FullscreenButton fs={fs} /><button onClick={onClose} className="text-2xl leading-none px-2" aria-label="Close">&times;</button></div>
       </div>
-      <div className="w-full aspect-video bg-neutral-900">
+      <div ref={fs.boxRef} className={fs.boxClass}>
         <div ref={ref} className="w-full h-full" />
       </div>
       <div className="p-4">

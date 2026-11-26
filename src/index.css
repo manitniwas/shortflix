@@ -10,3 +10,8 @@ html, body, #root {
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* iPhone fallback: fill the screen, rotated to landscape when held in portrait */
+@media (orientation: portrait) {
+  .fs-fill { width: 100vh; height: 100vw; transform: rotate(90deg); transform-origin: top left; top: 0; left: 100vw; right: auto; bottom: auto; }
+}
