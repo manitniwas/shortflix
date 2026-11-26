@@ -171,6 +171,10 @@ const IconFull = ({ exit }) => (
 
 const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
 
+// iOS Safari can't start unmuted playback through the iframe API (no user activation crosses
+// the embed boundary), so on iPhone/iPad we use YouTube's native controls instead of ours.
+const isIOS = typeof navigator !== 'undefined' && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+
 function Scrubber({ pos, onSeek }) {
   const pct = pos.d > 0 ? Math.min(100, (pos.t / pos.d) * 100) : 0
   return (
@@ -191,6 +195,7 @@ function Player({ play, onClose, onProgress, onNext }) {
   const ref = useRef(null)
   const fs = useFullscreen()
   const isVimeo = play.provider === 'vimeo'
+  const useNative = isIOS && !isVimeo
   const playerRef = useRef(null)
   const [ready, setReady] = useState(false)
   const [playing, setPlaying] = useState(true)
@@ -218,7 +223,9 @@ function Player({ play, onClose, onProgress, onNext }) {
       if (cancelled || !ref.current) return
       playerRef.current = new window.YT.Player(ref.current, {
         videoId: play.videoId,
-        playerVars: { autoplay: 1, controls: 0, disablekb: 1, fs: 0, rel: 0, modestbranding: 1, playsinline: 1, iv_load_policy: 3 },
+        playerVars: useNative
+          ? { autoplay: 0, controls: 1, fs: 1, rel: 0, modestbranding: 1, playsinline: 1 }
+          : { autoplay: 1, controls: 0, disablekb: 1, fs: 0, rel: 0, modestbranding: 1, playsinline: 1, iv_load_policy: 3 },
         events: {
           onReady: () => setReady(true),
           onStateChange: (e) => {
@@ -326,9 +333,9 @@ function Player({ play, onClose, onProgress, onNext }) {
           <div ref={ref} className="w-full h-full" />
         )}
         {/* YouTube: transparent layer takes taps so our controls replace the native ones */}
-        {!isVimeo && <div className="absolute inset-0 z-10" onClick={onTap} />}
+        {!isVimeo && !useNative && <div className="absolute inset-0 z-10" onClick={onTap} />}
 
-        {fs.active && !isVimeo && (
+        {fs.active && !isVimeo && !useNative && (
           <div className={`absolute inset-0 z-20 pointer-events-none ${uiCls}`}>
             <div className="absolute top-0 inset-x-0 h-28 bg-gradient-to-b from-black/80 to-transparent" />
             <div className="absolute bottom-0 inset-x-0 h-36 bg-gradient-to-t from-black/85 to-transparent" />
@@ -366,7 +373,7 @@ function Player({ play, onClose, onProgress, onNext }) {
 
       {!fs.active && (
         <div className="p-4">
-          {!isVimeo && (
+          {!isVimeo && !useNative && (
             <>
               <Scrubber pos={pos} onSeek={seekTo} />
               <div className="flex items-center justify-center gap-8 mt-3">
