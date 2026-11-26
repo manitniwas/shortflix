@@ -184,7 +184,8 @@ function Player({ play, onClose, onProgress, onNext }) {
   const ref = useRef(null)
   const fs = useFullscreen()
   const isVimeo = play.provider === 'vimeo'
-  const useNative = isIOS && !isVimeo
+  const isIG = play.provider === 'instagram'
+  const useNative = isIOS && !isVimeo && !isIG
   const playerRef = useRef(null)
   const [ready, setReady] = useState(false)
   const [playing, setPlaying] = useState(true)
@@ -205,7 +206,7 @@ function Player({ play, onClose, onProgress, onNext }) {
   }, [playing])
 
   useEffect(() => {
-    if (isVimeo) return
+    if (isVimeo || isIG) return
     let interval
     let cancelled = false
     const mount = () => {
@@ -292,7 +293,7 @@ function Player({ play, onClose, onProgress, onNext }) {
     lastTap.current = { t: now, x }
     if (fs.active) {
       if (showUI) { clearTimeout(hideTimer.current); setShowUI(false) } else poke()
-    } else if (!isVimeo) {
+    } else if (!isVimeo && !isIG) {
       toggle()
     }
   }
@@ -312,9 +313,13 @@ function Player({ play, onClose, onProgress, onNext }) {
         </div>
       )}
       <div className={videoCls}>
-        {isVimeo ? (
+        {isVimeo || isIG ? (
           <iframe
-            src={`https://player.vimeo.com/video/${play.videoId}?autoplay=1&playsinline=1&title=0`}
+            src={
+              isIG
+                ? `https://www.instagram.com/reel/${play.videoId}/embed`
+                : `https://player.vimeo.com/video/${play.videoId}?autoplay=1&playsinline=1&title=0`
+            }
             className="w-full h-full" frameBorder="0"
             allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title={play.label}
           />
@@ -322,9 +327,9 @@ function Player({ play, onClose, onProgress, onNext }) {
           <div ref={ref} className="w-full h-full" />
         )}
         {/* YouTube: transparent layer takes taps so our controls replace the native ones */}
-        {!isVimeo && !useNative && <div className="absolute inset-0 z-10" onClick={onTap} />}
+        {!isVimeo && !isIG && !useNative && <div className="absolute inset-0 z-10" onClick={onTap} />}
 
-        {fs.active && !isVimeo && !useNative && (
+        {fs.active && !isVimeo && !isIG && !useNative && (
           <div className={`absolute inset-0 z-20 pointer-events-none ${uiCls}`}>
             <div className="absolute top-0 inset-x-0 h-28 bg-gradient-to-b from-black/80 to-transparent" />
             <div className="absolute bottom-0 inset-x-0 h-36 bg-gradient-to-t from-black/85 to-transparent" />
@@ -362,7 +367,7 @@ function Player({ play, onClose, onProgress, onNext }) {
 
       {!fs.active && (
         <div className="p-4">
-          {!isVimeo && !useNative && (
+          {!isVimeo && !isIG && !useNative && (
             <>
               <Scrubber pos={pos} onSeek={seekTo} />
               <div className="flex items-center justify-center gap-8 mt-3">
@@ -377,11 +382,15 @@ function Player({ play, onClose, onProgress, onNext }) {
           <button onClick={fs.enter} className="mt-4 w-full bg-white/10 py-2.5 rounded font-semibold text-sm flex items-center justify-center gap-2">
             <IconFull /> Full screen
           </button>
-          {onNext && !isVimeo && (
+          {onNext && !isVimeo && !isIG && (
             <button onClick={onNext} className="mt-3 w-full bg-white/10 py-2 rounded font-semibold text-sm">Next episode</button>
           )}
           <p className="mt-4 text-center text-[11px] text-neutral-500">
-            {isVimeo ? "Real video, streamed with the film's official Vimeo embed." : "Real video, streamed from the film's official YouTube channel."}
+            {isIG
+              ? 'Real video, streamed with the official Instagram embed. Watch progress is not saved for these.'
+              : isVimeo
+                ? "Real video, streamed with the film's official Vimeo embed."
+                : "Real video, streamed from the film's official YouTube channel."}
           </p>
         </div>
       )}
@@ -943,10 +952,10 @@ export default function App() {
   const openPlay = (item, epIndex = null) => {
     if (item.type === 'series' && epIndex !== null) {
       const ep = item.episodes[epIndex]
-      setPlay({ videoId: ep.videoId, key: `${item.id}:${ep.id}`, label: `${item.title}: ${ep.title}`, seriesId: item.id, epIndex })
+      setPlay({ videoId: ep.videoId, key: `${item.id}:${ep.id}`, label: `${item.title}: ${ep.title}`, seriesId: item.id, epIndex, provider: ep.provider || item.provider })
     } else if (item.type === 'series') {
       const ep = item.episodes[0]
-      setPlay({ videoId: ep.videoId, key: `${item.id}:${ep.id}`, label: `${item.title}: ${ep.title}`, seriesId: item.id, epIndex: 0 })
+      setPlay({ videoId: ep.videoId, key: `${item.id}:${ep.id}`, label: `${item.title}: ${ep.title}`, seriesId: item.id, epIndex: 0, provider: ep.provider || item.provider })
     } else {
       setPlay({ videoId: item.videoId, key: item.id, label: item.title, provider: item.provider })
     }

@@ -346,6 +346,30 @@ export const CATALOG = [
   { id:'ny-age-of-extinction', type:'film', title:'Living in an Age of Extinction', runtime:10, genres:['Documentary'], award:null, synopsis:'What it means to love the natural world while it disappears.', videoId:'Yv74aP2cKac', channel:'The New Yorker' },
   // --- Series ---
   {
+    id: 'happy-for-them',
+    type: 'series',
+    title: 'Happy For Them',
+    year: 2026,
+    genres: ['Comedy', 'Romance'],
+    award: null,
+    synopsis:
+      'Leena works through a breakup while her ex moves on, one awkward week at a time. A NowThis original vertical series, written and produced by the Mind the Gap collective.',
+    channel: 'NowThis',
+    provider: 'instagram',
+    poster: 'posters/happyforthem.jpg',
+    episodes: [
+      { id: 'hft1', title: 'Moving On', videoId: 'DdjpE8dgRx4', runtime: 2 },
+      { id: 'hft2', title: 'Choose Your Fighter', videoId: 'Dd1qP-xAHL7', runtime: 1 },
+      { id: 'hft3', title: 'Tagged Posts', videoId: 'DeHsEUZgMGG', runtime: 1 },
+      { id: 'hft4', title: 'The Hoodie', videoId: 'DeXDIPNkknv', runtime: 2 },
+      { id: 'hft5', title: 'The Universe', videoId: 'DerhWeCiFLd', runtime: 1 },
+      { id: 'hft6', title: 'Roommate Wanted', videoId: 'De9jQHNjzrV', runtime: 1 },
+      { id: 'hft7', title: 'Picking Up', videoId: 'DfP8iJlDL3A', runtime: 1 },
+      { id: 'hft8', title: 'Unlikeliest Places', videoId: 'Dful-w1CmI-', runtime: 2 },
+    ],
+  },
+
+  {
     id: 'mind-the-gap',
     type: 'series',
     title: 'Mind the Gap',
