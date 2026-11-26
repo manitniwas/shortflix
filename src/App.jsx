@@ -2,6 +2,15 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { CATALOG, thumb, posterFor } from './catalog.js'
 import { supabase, fetchProfileState } from './supabase.js'
 
+const catalogIds = new Set(CATALOG.map((c) => c.id))
+const validKey = (k) => catalogIds.has(String(k).split(':')[0])
+// Drop saved state that points at titles no longer in the catalog, so counts match what is shown.
+const sanitizeState = (s) => ({
+  myList: (s?.myList || []).filter((id) => catalogIds.has(id)),
+  ratings: Object.fromEntries(Object.entries(s?.ratings || {}).filter(([k, v]) => v && catalogIds.has(k))),
+  progress: Object.fromEntries(Object.entries(s?.progress || {}).filter(([k]) => validKey(k))),
+})
+
 const fmt = (min) => (min >= 60 ? `${Math.floor(min / 60)}h ${min % 60}m` : `${min} min`)
 
 function Badge({ children, color = 'bg-white/15' }) {
@@ -757,17 +766,17 @@ export default function App() {
     // Show this device's cached copy instantly, then replace with the database copy.
     try {
       const raw = window.localStorage.getItem(`sf_state_${p.id}`)
-      const s = raw ? JSON.parse(raw) : null
-      setMyList(s?.myList || [])
-      setRatings(s?.ratings || {})
-      setProgress(s?.progress || {})
+      const s = sanitizeState(raw ? JSON.parse(raw) : null)
+      setMyList(s.myList)
+      setRatings(s.ratings)
+      setProgress(s.progress)
     } catch {
       setMyList([])
       setRatings({})
       setProgress({})
     }
     try {
-      const s = await fetchProfileState(p.id)
+      const s = sanitizeState(await fetchProfileState(p.id))
       // Only apply if this profile is still the active one.
       if (refs.current.profile?.id !== p.id) return
       setMyList(s.myList)
@@ -790,9 +799,9 @@ export default function App() {
     // First profile on this account inherits whatever this browser saved before login existed.
     if ((profiles || []).length === 0) {
       try {
-        const l = JSON.parse(window.localStorage.getItem('sf_mylist') || '[]')
-        const r = JSON.parse(window.localStorage.getItem('sf_ratings') || '{}')
-        const pr = JSON.parse(window.localStorage.getItem('sf_progress') || '{}')
+        const l = JSON.parse(window.localStorage.getItem('sf_mylist') || '[]').filter((f) => catalogIds.has(f))
+        const r = Object.fromEntries(Object.entries(JSON.parse(window.localStorage.getItem('sf_ratings') || '{}')).filter(([k]) => catalogIds.has(k)))
+        const pr = Object.fromEntries(Object.entries(JSON.parse(window.localStorage.getItem('sf_progress') || '{}')).filter(([k]) => validKey(k)))
         if (l.length) await supabase.from('list_items').upsert(l.map((f) => ({ profile_id: p.id, film_id: f })))
         const ratingRows = Object.entries(r).filter(([, v]) => v).map(([f, v]) => ({ profile_id: p.id, film_id: f, rating: v }))
         if (ratingRows.length) await supabase.from('ratings').upsert(ratingRows)
