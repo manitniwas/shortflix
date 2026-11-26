@@ -346,6 +346,24 @@ export const CATALOG = [
   { id:'ny-age-of-extinction', type:'film', title:'Living in an Age of Extinction', runtime:10, genres:['Documentary'], award:null, synopsis:'What it means to love the natural world while it disappears.', videoId:'Yv74aP2cKac', channel:'The New Yorker' },
   // --- Series ---
   {
+    id: 'mind-the-gap',
+    type: 'series',
+    title: 'Mind the Gap',
+    year: 2026,
+    genres: ['Drama', 'Romance'],
+    award: null,
+    synopsis:
+      'Bite-size relationship films from Mind the Gap, an NYC filmmaking collective. Written by and starring Sushmita and Ehsan Mazhar.',
+    channel: 'Mind the Gap',
+    posterId: 'AorfrqsPO28',
+    episodes: [
+      { id: 'mtg1', title: 'Rice', videoId: 'AorfrqsPO28', runtime: 5 },
+      { id: 'mtg2', title: 'Becoming Strangers', videoId: 'XLoWtB21De0', runtime: 3 },
+      { id: 'mtg3', title: 'Drinks On Me', videoId: 'kXrVvdTrXgU', runtime: 4 },
+    ],
+  },
+
+  {
     id: 'simons-cat',
     type: 'series',
     title: "Simon's Cat",
