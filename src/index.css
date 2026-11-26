@@ -15,4 +15,4 @@ html, body, #root {
 @media (orientation: portrait) {
   .fs-fill { width: 100vh; height: 100vw; transform: rotate(90deg); transform-origin: top left; top: 0; left: 100vw; right: auto; bottom: auto; }
 }
-.fs-box iframe { width: 100%; height: 100%; }
+.fs-root iframe { width: 100%; height: 100%; }

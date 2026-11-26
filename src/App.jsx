@@ -110,34 +110,33 @@ function Hero({ item, inList, onPlay, onToggleList, onOpen }) {
 }
 
 function useFullscreen() {
-  const boxRef = useRef(null)
+  const rootRef = useRef(null)
   const [full, setFull] = useState(false)
   const [fill, setFill] = useState(false)
   useEffect(() => {
-    const onChange = () => {
-      const el = document.fullscreenElement || document.webkitFullscreenElement
-      setFull(!!el)
-    }
+    const onChange = () => setFull(!!(document.fullscreenElement || document.webkitFullscreenElement))
+    const onKey = (e) => { if (e.key === 'Escape') setFill(false) }
     document.addEventListener('fullscreenchange', onChange)
     document.addEventListener('webkitfullscreenchange', onChange)
+    document.addEventListener('keydown', onKey)
     return () => {
       document.removeEventListener('fullscreenchange', onChange)
       document.removeEventListener('webkitfullscreenchange', onChange)
+      document.removeEventListener('keydown', onKey)
       if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {})
       if (screen.orientation && screen.orientation.unlock) try { screen.orientation.unlock() } catch (e) {}
     }
   }, [])
-  const toggle = async () => {
-    const el = boxRef.current
-    if (full || fill) {
-      setFill(false)
-      try {
-        if (document.fullscreenElement && document.exitFullscreen) await document.exitFullscreen()
-        else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen()
-        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock()
-      } catch (e) {}
-      return
-    }
+  const exit = async () => {
+    setFill(false)
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) await document.exitFullscreen()
+      else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen()
+      if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock()
+    } catch (e) {}
+  }
+  const enter = async () => {
+    const el = rootRef.current
     try {
       if (el.requestFullscreen) await el.requestFullscreen()
       else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen()
@@ -148,65 +147,78 @@ function useFullscreen() {
     }
   }
   const active = full || fill
-  const boxClass = fill
-    ? 'fixed inset-0 z-[60] bg-black fs-fill fs-box'
-    : full
-      ? 'w-full h-full bg-black fs-box'
-      : 'w-full aspect-video bg-neutral-900 fs-box'
-  return { boxRef, boxClass, active, toggle }
+  return { rootRef, active, fill, enter, exit, toggle: () => (active ? exit() : enter()) }
 }
 
-function FullscreenButton({ fs }) {
+const IconBack = () => (
+  <svg viewBox="0 0 24 24" className="w-7 h-7 fill-none stroke-current" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
+)
+const IconPlay = ({ cls = 'w-9 h-9' }) => (<svg viewBox="0 0 24 24" className={`${cls} fill-current`}><path d="M8 5v14l11-7z" /></svg>)
+const IconPause = ({ cls = 'w-9 h-9' }) => (<svg viewBox="0 0 24 24" className={`${cls} fill-current`}><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>)
+const IconSkip = ({ dir }) => (
+  <svg viewBox="0 0 24 24" className="w-9 h-9 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <g transform={dir < 0 ? '' : 'translate(24,0) scale(-1,1)'}>
+      <path d="M12 5V2L7.5 6 12 10V7a6 6 0 1 1-6 6" />
+    </g>
+    <text x="12" y="16.5" fontSize="6.5" textAnchor="middle" className="fill-current stroke-none" fontWeight="700">10</text>
+  </svg>
+)
+const IconFull = ({ exit }) => (
+  <svg viewBox="0 0 24 24" className="w-6 h-6 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {exit ? <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /> : <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />}
+  </svg>
+)
+
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
+
+function Scrubber({ pos, onSeek }) {
+  const pct = pos.d > 0 ? Math.min(100, (pos.t / pos.d) * 100) : 0
   return (
-    <>
-      <button onClick={fs.toggle} className="text-xs font-semibold border border-white/30 rounded px-2 py-1 mr-2 whitespace-nowrap" aria-label={fs.active ? 'Exit full screen' : 'Full screen'}>
-        {fs.active ? 'Exit full screen' : 'Full screen'}
-      </button>
-    </>
+    <div className="flex items-center gap-3 w-full">
+      <input
+        type="range" min="0" max={pos.d || 1} step="0.1" value={pos.t}
+        onChange={(e) => onSeek(parseFloat(e.target.value))}
+        className="flex-1 h-1 accent-red-600 cursor-pointer"
+        style={{ background: `linear-gradient(to right,#e50914 ${pct}%,rgba(255,255,255,.3) ${pct}%)`, appearance: 'none', borderRadius: 4 }}
+        aria-label="Seek"
+      />
+      <span className="text-xs tabular-nums text-neutral-200 w-20 text-right">{mmss(pos.t)} / {pos.d ? mmss(pos.d) : '--:--'}</span>
+    </div>
   )
 }
 
 function Player({ play, onClose, onProgress, onNext }) {
   const ref = useRef(null)
   const fs = useFullscreen()
-  if (play.provider === 'vimeo') {
-    return (
-      <div className="fixed inset-0 z-50 bg-black flex flex-col">
-        <div className="flex items-center justify-between p-3">
-          <div className="text-sm font-semibold truncate pr-3">{play.label}</div>
-          <div className="flex items-center"><FullscreenButton fs={fs} /><button onClick={onClose} className="text-2xl leading-none px-2" aria-label="Close">&times;</button></div>
-        </div>
-        <div ref={fs.boxRef} className={fs.boxClass}>
-          <iframe
-            src={`https://player.vimeo.com/video/${play.videoId}?autoplay=1&playsinline=1&title=0`}
-            className="w-full h-full"
-            frameBorder="0"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-            title={play.label}
-          />
-        </div>
-        <div className="p-4">
-          <p className="text-center text-[11px] text-neutral-500">
-            Real video, streamed with the film&apos;s official Vimeo embed.
-          </p>
-        </div>
-      </div>
-    )
-  }
+  const isVimeo = play.provider === 'vimeo'
   const playerRef = useRef(null)
   const [ready, setReady] = useState(false)
   const [playing, setPlaying] = useState(true)
   const [pos, setPos] = useState({ t: 0, d: 0 })
+  const [showUI, setShowUI] = useState(true)
+  const hideTimer = useRef(null)
+  const lastTap = useRef({ t: 0, x: 0 })
+
+  const poke = () => {
+    setShowUI(true)
+    clearTimeout(hideTimer.current)
+    hideTimer.current = setTimeout(() => setShowUI(false), 3200)
+  }
+  useEffect(() => { poke(); return () => clearTimeout(hideTimer.current) }, [fs.active])
+  useEffect(() => {
+    if (!fs.active || !playing) { clearTimeout(hideTimer.current); setShowUI(true) }
+    else poke()
+  }, [playing])
 
   useEffect(() => {
+    if (isVimeo) return
     let interval
     let cancelled = false
     const mount = () => {
       if (cancelled || !ref.current) return
       playerRef.current = new window.YT.Player(ref.current, {
         videoId: play.videoId,
-        playerVars: { autoplay: 1, fs: 0, rel: 0, modestbranding: 1, playsinline: 1 },
+        playerVars: { autoplay: 1, controls: 0, disablekb: 1, fs: 0, rel: 0, modestbranding: 1, playsinline: 1, iv_load_policy: 3 },
         events: {
           onReady: () => setReady(true),
           onStateChange: (e) => {
@@ -228,7 +240,7 @@ function Player({ play, onClose, onProgress, onNext }) {
           setPos({ t, d })
           onProgress(play.key, t, d)
         }
-      }, 2000)
+      }, 500)
     }
     if (window.YT && window.YT.Player) {
       mount()
@@ -254,6 +266,12 @@ function Player({ play, onClose, onProgress, onNext }) {
   const skip = (delta) => {
     const pl = playerRef.current
     if (pl && pl.getCurrentTime) pl.seekTo(Math.max(0, pl.getCurrentTime() + delta), true)
+    poke()
+  }
+  const seekTo = (t) => {
+    const pl = playerRef.current
+    if (pl && pl.seekTo) { pl.seekTo(t, true); setPos((p) => ({ ...p, t })) }
+    poke()
   }
   const toggle = () => {
     const pl = playerRef.current
@@ -261,51 +279,116 @@ function Player({ play, onClose, onProgress, onNext }) {
     if (playing) pl.pauseVideo()
     else pl.playVideo()
   }
-  const pct = pos.d > 0 ? Math.min(100, (pos.t / pos.d) * 100) : 0
-  const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
+  const closeAll = () => { if (fs.active) fs.exit(); onClose() }
+  const back = () => (fs.active ? fs.exit() : onClose())
+
+  // Tap on the video: double-tap left/right skips 10s; single tap shows/hides controls
+  const onTap = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = (e.clientX - rect.left) / rect.width
+    const now = Date.now()
+    const lt = lastTap.current
+    if (now - lt.t < 320 && Math.abs(x - lt.x) < 0.3 && (x < 0.35 || x > 0.65)) {
+      skip(x < 0.5 ? -10 : 10)
+      lastTap.current = { t: 0, x }
+      return
+    }
+    lastTap.current = { t: now, x }
+    if (fs.active) {
+      if (showUI) { clearTimeout(hideTimer.current); setShowUI(false) } else poke()
+    } else if (!isVimeo) {
+      toggle()
+    }
+  }
+
+  const rootCls = fs.fill ? 'fixed inset-0 z-[60] bg-black fs-fill' : 'fixed inset-0 z-50 bg-black'
+  const videoCls = fs.active ? 'absolute inset-0 bg-black' : 'relative w-full aspect-video bg-neutral-900'
+  const uiCls = `transition-opacity duration-300 ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
-      <div className="flex items-center justify-between p-3">
-        <div className="text-sm font-semibold truncate pr-3">{play.label}</div>
-        <div className="flex items-center"><FullscreenButton fs={fs} /><button onClick={onClose} className="text-2xl leading-none px-2" aria-label="Close">&times;</button></div>
-      </div>
-      <div ref={fs.boxRef} className={fs.boxClass}>
-        <div ref={ref} className="w-full h-full" />
-      </div>
-      <div className="p-4">
-        <div className="h-1 bg-white/20 rounded">
-          <div className="h-full bg-brand rounded" style={{ width: `${pct}%` }} />
-        </div>
-        <div className="flex justify-between text-xs text-neutral-400 mt-1">
-          <span>{mmss(pos.t)}</span>
-          <span>{pos.d ? mmss(pos.d) : '--:--'}</span>
-        </div>
-        <div className="flex items-center justify-center gap-8 mt-4">
-          <button onClick={() => skip(-10)} className="text-sm text-neutral-300">-10s</button>
-          <button
-            onClick={toggle}
-            disabled={!ready}
-            className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center disabled:opacity-40"
-            aria-label={playing ? 'Pause' : 'Play'}
-          >
-            {playing ? (
-              <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>
-            ) : (
-              <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current"><path d="M8 5v14l11-7z" /></svg>
-            )}
+    <div ref={fs.rootRef} className={`${rootCls} ${fs.active ? '' : 'flex flex-col'} select-none fs-root`} onMouseMove={fs.active ? poke : undefined}>
+      {!fs.active && (
+        <div className="flex items-center justify-between p-3">
+          <button onClick={onClose} className="flex items-center gap-1 text-sm font-semibold pr-3 min-w-0" aria-label="Back">
+            <IconBack /><span className="truncate">{play.label}</span>
           </button>
-          <button onClick={() => skip(10)} className="text-sm text-neutral-300">+10s</button>
+          <button onClick={closeAll} className="text-2xl leading-none px-2" aria-label="Close">&times;</button>
         </div>
-        {onNext && (
-          <button onClick={onNext} className="mt-4 w-full bg-white/10 py-2 rounded font-semibold text-sm">
-            Next episode
-          </button>
+      )}
+      <div className={videoCls}>
+        {isVimeo ? (
+          <iframe
+            src={`https://player.vimeo.com/video/${play.videoId}?autoplay=1&playsinline=1&title=0`}
+            className="w-full h-full" frameBorder="0"
+            allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title={play.label}
+          />
+        ) : (
+          <div ref={ref} className="w-full h-full" />
         )}
-        <p className="mt-4 text-center text-[11px] text-neutral-500">
-          Real video, streamed from the film&apos;s official YouTube channel.
-        </p>
+        {/* YouTube: transparent layer takes taps so our controls replace the native ones */}
+        {!isVimeo && <div className="absolute inset-0 z-10" onClick={onTap} />}
+
+        {fs.active && !isVimeo && (
+          <div className={`absolute inset-0 z-20 pointer-events-none ${uiCls}`}>
+            <div className="absolute top-0 inset-x-0 h-28 bg-gradient-to-b from-black/80 to-transparent" />
+            <div className="absolute bottom-0 inset-x-0 h-36 bg-gradient-to-t from-black/85 to-transparent" />
+            <div className="absolute top-0 inset-x-0 flex items-center gap-2 px-4 pt-4 pointer-events-auto">
+              <button onClick={fs.exit} className="p-2 -ml-2 rounded-full bg-black/40" aria-label="Exit full screen"><IconBack /></button>
+              <div className="text-base font-semibold truncate">{play.label}</div>
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center gap-14">
+              <button onClick={() => skip(-10)} className="pointer-events-auto p-2" aria-label="Back 10 seconds"><IconSkip dir={-1} /></button>
+              <button onClick={toggle} className="pointer-events-auto p-3 rounded-full bg-black/40" aria-label={playing ? 'Pause' : 'Play'}>
+                {playing ? <IconPause cls="w-12 h-12" /> : <IconPlay cls="w-12 h-12" />}
+              </button>
+              <button onClick={() => skip(10)} className="pointer-events-auto p-2" aria-label="Forward 10 seconds"><IconSkip dir={1} /></button>
+            </div>
+            <div className="absolute bottom-0 inset-x-0 px-5 pb-5 pointer-events-auto">
+              <Scrubber pos={pos} onSeek={seekTo} />
+              <div className="flex items-center justify-between mt-2">
+                {onNext ? (
+                  <button onClick={onNext} className="text-sm font-semibold">Next episode</button>
+                ) : <span />}
+                <button onClick={fs.exit} className="flex items-center gap-1 text-sm font-semibold" aria-label="Exit full screen"><IconFull exit /> Exit full screen</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {fs.active && isVimeo && (
+          <div className="absolute top-0 inset-x-0 z-20 flex items-center gap-2 px-3 pt-3 pointer-events-none">
+            <button onClick={fs.exit} className="pointer-events-auto flex items-center gap-1 rounded-full bg-black/60 pl-1 pr-4 py-1.5 text-sm font-semibold" aria-label="Exit full screen">
+              <IconBack /> Back
+            </button>
+          </div>
+        )}
       </div>
+
+      {!fs.active && (
+        <div className="p-4">
+          {!isVimeo && (
+            <>
+              <Scrubber pos={pos} onSeek={seekTo} />
+              <div className="flex items-center justify-center gap-8 mt-3">
+                <button onClick={() => skip(-10)} aria-label="Back 10 seconds"><IconSkip dir={-1} /></button>
+                <button onClick={toggle} disabled={!ready} className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center disabled:opacity-40" aria-label={playing ? 'Pause' : 'Play'}>
+                  {playing ? <IconPause cls="w-6 h-6" /> : <IconPlay cls="w-6 h-6" />}
+                </button>
+                <button onClick={() => skip(10)} aria-label="Forward 10 seconds"><IconSkip dir={1} /></button>
+              </div>
+            </>
+          )}
+          <button onClick={fs.enter} className="mt-4 w-full bg-white/10 py-2.5 rounded font-semibold text-sm flex items-center justify-center gap-2">
+            <IconFull /> Full screen
+          </button>
+          {onNext && !isVimeo && (
+            <button onClick={onNext} className="mt-3 w-full bg-white/10 py-2 rounded font-semibold text-sm">Next episode</button>
+          )}
+          <p className="mt-4 text-center text-[11px] text-neutral-500">
+            {isVimeo ? "Real video, streamed with the film's official Vimeo embed." : "Real video, streamed from the film's official YouTube channel."}
+          </p>
+        </div>
+      )}
     </div>
   )
 }
