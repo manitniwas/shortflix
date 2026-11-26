@@ -302,7 +302,7 @@ function Player({ play, onClose, onProgress, onNext }) {
   }
 
   const rootCls = fs.fill ? 'fixed inset-0 z-[60] bg-black fs-fill' : 'fixed inset-0 z-50 bg-black'
-  const videoCls = fs.active ? 'absolute inset-0 bg-black' : 'relative w-full aspect-video bg-neutral-900'
+  const videoCls = fs.active ? 'absolute inset-0 bg-black' : 'relative w-full aspect-video max-h-[55vh] bg-neutral-900'
   const uiCls = `transition-opacity duration-300 ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`
 
   return (
