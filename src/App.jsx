@@ -356,7 +356,7 @@ function Player({ play, onClose, onProgress, onNext }) {
           </div>
         )}
 
-        {fs.active && isVimeo && (
+        {fs.active && (isVimeo || isIG) && (
           <div className="absolute top-0 inset-x-0 z-20 flex items-center gap-2 px-3 pt-3 pointer-events-none">
             <button onClick={fs.exit} className="pointer-events-auto flex items-center gap-1 rounded-full bg-black/60 pl-1 pr-4 py-1.5 text-sm font-semibold" aria-label="Exit full screen">
               <IconBack /> Back
