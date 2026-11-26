@@ -22,6 +22,12 @@ jobs:
         run: |
           mkdir -p ~/private_keys
           printf '%s\n' "$APPLE_ASC_PRIVATE_KEY" > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+      - name: Prepare signing assets (cert + profile)
+        env:
+          ASC_KEY_ID: ${{ secrets.APPLE_ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APPLE_ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.APPLE_ASC_PRIVATE_KEY }}
+        run: fastlane prep_signing
       - name: Bump build number
         working-directory: ios/App
         run: agvtool new-version -all ${{ github.run_number }}
