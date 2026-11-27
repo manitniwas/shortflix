@@ -305,14 +305,14 @@ function Player({ play, onClose, onProgress, onNext }) {
     }
   }
 
-  const rootCls = fs.fill ? 'fixed inset-0 z-[60] bg-black fs-fill' : 'fixed inset-0 z-50 bg-black'
+  const rootCls = fs.fill ? 'fixed inset-0 z-[60] bg-black fs-fill' : 'fixed inset-x-0 top-0 bottom-[calc(57px+env(safe-area-inset-bottom))] z-40 bg-black overflow-y-auto'
   const videoCls = fs.active ? 'absolute inset-0 bg-black' : 'relative w-full aspect-video max-h-[55vh] bg-neutral-900'
   const uiCls = `transition-opacity duration-300 ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`
 
   return (
     <div ref={fs.rootRef} className={`${rootCls} ${fs.active ? '' : 'flex flex-col'} select-none fs-root`} onMouseMove={fs.active ? poke : undefined}>
       {!fs.active && (
-        <div className="flex items-center justify-between p-3">
+        <div className="flex items-center justify-between px-3 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
           <button onClick={onClose} className="flex items-center gap-1 text-sm font-semibold pr-3 min-w-0" aria-label="Back">
             <IconBack /><span className="truncate">{play.label}</span>
           </button>
@@ -410,7 +410,7 @@ function Detail({ item, inList, rating, progress, onClose, onPlay, onToggleList,
     (c) => c.id !== item.id && c.genres.some((g) => item.genres.includes(g)),
   ).slice(0, 8)
   return (
-    <div className="fixed inset-0 z-40 bg-[#0a0a0a] overflow-y-auto">
+    <div className="fixed inset-0 z-40 bg-[#0a0a0a] overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))]">
       <div className="relative">
         <img src={posterFor(item)} alt={item.title} className="w-full aspect-video object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-black/40" />
@@ -526,7 +526,7 @@ function BottomNav({ tab, setTab }) {
   )
   const cls = 'w-6 h-6 fill-current'
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-black/90 backdrop-blur border-t border-white/10 flex pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-[45] bg-black/90 backdrop-blur border-t border-white/10 flex pb-[env(safe-area-inset-bottom)]">
       <Item id="home" label="Home" icon={<svg viewBox="0 0 24 24" className={cls}><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>} />
       <Item id="search" label="Search" icon={<svg viewBox="0 0 24 24" className={cls}><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z" /></svg>} />
       <Item id="list" label="My List" icon={<svg viewBox="0 0 24 24" className={cls}><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z" /></svg>} />
@@ -1053,7 +1053,7 @@ export default function App() {
     <div className="min-h-full bg-[#0a0a0a] text-white pb-[calc(5rem+env(safe-area-inset-bottom))] max-w-xl mx-auto">
       {tab === 'home' && (
         <>
-          <header className="sticky top-0 z-20 bg-gradient-to-b from-black to-transparent px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-2 flex items-center justify-between">
+          <header className="fixed top-0 left-0 right-0 z-30 max-w-xl mx-auto bg-gradient-to-b from-black via-black/90 to-transparent px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-2 flex items-center justify-between">
             <div className="text-brand font-extrabold text-xl tracking-tight">SHORTFLIX</div>
             <div className="flex gap-1 items-center">
               {['All', 'Films', 'Series'].map((c) => (
@@ -1070,6 +1070,7 @@ export default function App() {
               </button>
             </div>
           </header>
+          <div className="h-[calc(3.25rem+env(safe-area-inset-top))]" aria-hidden="true" />
           <Hero
             item={featured}
             inList={myList.includes(featured.id)}

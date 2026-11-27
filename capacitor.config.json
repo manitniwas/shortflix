@@ -3,6 +3,9 @@
   "appName": "Shortflix",
   "webDir": "dist",
   "backgroundColor": "#0a0a0a",
+  "server": {
+    "iosScheme": "https"
+  },
   "ios": {
     "contentInset": "never"
   }
