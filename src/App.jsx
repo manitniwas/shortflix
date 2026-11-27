@@ -193,6 +193,10 @@ function Player({ play, onClose, onProgress, onNext }) {
   const isVimeo = play.provider === 'vimeo'
   const isIG = play.provider === 'instagram'
   const useNative = isIOS && !isVimeo && !isIG
+  // Inside the iOS app the page origin is capacitor://localhost, which YouTube rejects (Error 153).
+  // Embed YouTube through a page hosted on https instead, so YouTube sees a real https referrer.
+  const isNativeApp = typeof window !== 'undefined' && !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())
+  const hostedYT = isNativeApp && !isVimeo && !isIG
   const playerRef = useRef(null)
   const [ready, setReady] = useState(false)
   const [playing, setPlaying] = useState(true)
@@ -213,7 +217,7 @@ function Player({ play, onClose, onProgress, onNext }) {
   }, [playing])
 
   useEffect(() => {
-    if (isVimeo || isIG) return
+    if (isVimeo || isIG || hostedYT) return
     let interval
     let cancelled = false
     const mount = () => {
@@ -320,7 +324,13 @@ function Player({ play, onClose, onProgress, onNext }) {
         </div>
       )}
       <div className={videoCls}>
-        {isVimeo || isIG ? (
+        {hostedYT ? (
+          <iframe
+            src={`https://manitniwas.github.io/shortflix/yt.html?v=${encodeURIComponent(play.videoId)}`}
+            className="w-full h-full" frameBorder="0"
+            allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen title={play.label}
+          />
+        ) : isVimeo || isIG ? (
           <iframe
             src={
               isIG
