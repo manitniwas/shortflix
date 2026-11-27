@@ -414,7 +414,7 @@ function Detail({ item, inList, rating, progress, onClose, onPlay, onToggleList,
       <div className="relative">
         <img src={posterFor(item)} alt={item.title} className="w-full aspect-video object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-black/40" />
-        <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 text-xl" aria-label="Back">
+        <button onClick={onClose} className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-3 w-8 h-8 rounded-full bg-black/60 text-xl" aria-label="Back">
           &times;
         </button>
       </div>
@@ -526,7 +526,7 @@ function BottomNav({ tab, setTab }) {
   )
   const cls = 'w-6 h-6 fill-current'
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-black/90 backdrop-blur border-t border-white/10 flex">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-black/90 backdrop-blur border-t border-white/10 flex pb-[env(safe-area-inset-bottom)]">
       <Item id="home" label="Home" icon={<svg viewBox="0 0 24 24" className={cls}><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>} />
       <Item id="search" label="Search" icon={<svg viewBox="0 0 24 24" className={cls}><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z" /></svg>} />
       <Item id="list" label="My List" icon={<svg viewBox="0 0 24 24" className={cls}><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z" /></svg>} />
@@ -1050,10 +1050,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-full bg-[#0a0a0a] text-white pb-20 max-w-xl mx-auto">
+    <div className="min-h-full bg-[#0a0a0a] text-white pb-[calc(5rem+env(safe-area-inset-bottom))] max-w-xl mx-auto">
       {tab === 'home' && (
         <>
-          <header className="sticky top-0 z-20 bg-gradient-to-b from-black to-transparent px-4 pt-3 pb-2 flex items-center justify-between">
+          <header className="sticky top-0 z-20 bg-gradient-to-b from-black to-transparent px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-2 flex items-center justify-between">
             <div className="text-brand font-extrabold text-xl tracking-tight">SHORTFLIX</div>
             <div className="flex gap-1 items-center">
               {['All', 'Films', 'Series'].map((c) => (
@@ -1096,7 +1096,7 @@ export default function App() {
       )}
 
       {tab === 'search' && (
-        <div className="px-4 pt-4">
+        <div className="px-4 pt-[calc(1rem+env(safe-area-inset-top))]">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -1120,7 +1120,7 @@ export default function App() {
       )}
 
       {tab === 'list' && (
-        <div className="px-4 pt-4">
+        <div className="px-4 pt-[calc(1rem+env(safe-area-inset-top))]">
           <h1 className="text-xl font-bold">My List</h1>
           {listItems.length === 0 ? (
             <p className="text-sm text-neutral-500 mt-4">Nothing here yet. Add films from their detail pages.</p>
@@ -1139,7 +1139,7 @@ export default function App() {
       )}
 
       {tab === 'me' && (
-        <div className="px-4 pt-4">
+        <div className="px-4 pt-[calc(1rem+env(safe-area-inset-top))]">
           <div className="flex items-center gap-3">
             <AvatarBadge profile={profile} size="w-11 h-11 text-lg" />
             <div className="min-w-0">
