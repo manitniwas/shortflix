@@ -23,6 +23,8 @@ platform :ios do
       api_key: key,
       app_identifier: "com.manitniwas.shortflix",
       adhoc: false,
+      output_path: "fastlane",
+      filename: "shortflix-appstore.mobileprovision",
     )
   end
 

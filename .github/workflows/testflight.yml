@@ -70,7 +70,11 @@ jobs:
           </dict>
           </plist>
           PLIST
-          PROFILE_UUID=$(basename "$(ls -t "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision | head -1)" .mobileprovision)
+          PP="$GITHUB_WORKSPACE/fastlane/shortflix-appstore.mobileprovision"
+          PROFILE_UUID=$(security cms -D -i "$PP" -o /tmp/pp.plist && /usr/libexec/PlistBuddy -c 'Print UUID' /tmp/pp.plist)
+          mkdir -p "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PP" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          cp "$PP" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
           echo "Using installed provisioning profile $PROFILE_UUID"
           sed -i '' "s/PROFILE_PLACEHOLDER/$PROFILE_UUID/" build/ExportOptions.plist
           xcodebuild -exportArchive \
